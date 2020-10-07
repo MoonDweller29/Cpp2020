@@ -34,7 +34,8 @@ public:
     std::string str() const { return sstream.str(); }
 
     template<size_t I = 0, typename... Args>
-    Printer &format(const std::tuple<Args...>& t) {
+    Printer &format(const std::tuple<Args...>& t)
+    {
         if constexpr (I == 0)
             sstream << "( ";
         format(std::get<I>(t));
@@ -52,7 +53,8 @@ public:
     }
 
     template<typename T1, typename T2>
-    Printer &format(const std::pair<T1, T2>& pair) {
+    Printer &format(const std::pair<T1, T2>& pair)
+    {
         sstream << "( ";
         format(std::get<0>(pair));
         sstream << ", ";
