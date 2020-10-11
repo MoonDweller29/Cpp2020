@@ -1,6 +1,5 @@
 #include <iostream>
 #include <memory>
-#include <functional>
 
 class A {
 public:
@@ -16,8 +15,8 @@ public:
 
 template <typename T>
 class Allocator {
-	std::function<void *(size_t size)> op_new;
-	std::function<void (void *p, size_t size)> op_del;
+	void *(*op_new)(size_t size);
+	void (*op_del)(void *p, size_t size);
 
 	template <typename C>
     static auto has_custom_new_op(const Allocator<C>&)
@@ -37,8 +36,8 @@ public:
 			op_new = T::operator new;
 			op_del = T::operator delete;
 		} else {
-			op_new = nullptr;
-			op_del = nullptr;
+			op_new = ::operator new;
+			op_del = ::operator delete;
 		}
 	}
 
@@ -50,28 +49,19 @@ public:
 
 	T* allocate (size_t n) {
 		// std::cout << "allocate " << n  << " Tsize " << sizeof(T) << std::endl;
-		if (op_new) {
-			return static_cast<T*>(op_new(n*sizeof(T)));
-		}
-		else {
-			std::cout << "default new" << std::endl;
-			return static_cast<T*>(::operator new(n*sizeof(T)));
-		}
+		return static_cast<T*>(op_new(n*sizeof(T)));
 	}
 	void deallocate (T* p, size_t n) {
-		if (op_del) {
-			op_del(p, n*sizeof(T));
-		}
-		else {
-			std::cout << "default delete" << std::endl;
-			::operator delete(p, n*sizeof(T));
-		}
+		op_del(p, n*sizeof(T));
 	}
+
+	template <class T1, class T2>
+	friend constexpr bool operator==(const Allocator<T1>&, const Allocator<T2>&) noexcept;
 };
 
 template <class T, class U>
-constexpr bool operator==(const Allocator<T>&, const Allocator<U>&) noexcept
-{return true;}
+constexpr bool operator==(const Allocator<T>& al1, const Allocator<U>& al2) noexcept
+{ return al1.op_new == al2.op_new; }
 
 int main(int argc, char **argv)
 {
